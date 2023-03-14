@@ -1,0 +1,20 @@
+#include <systemc.h>
+
+SC_MODULE(MessageWriter) {
+    void writeMessage() {
+        for (int t = 10; t <= 100; t++) {
+            wait(t - sc_time_stamp());
+            cout << "Message at " << sc_time_stamp() << endl;
+        }
+    }
+
+    SC_CTOR(MessageWriter) {
+        SC_THREAD(writeMessage);
+    }
+};
+
+int sc_main(int argc, char *argv[]) {
+    MessageWriter writer("MessageWriter");
+    sc_start();
+    return 0;
+}
