@@ -1,0 +1,74 @@
+#include <systemc.h>
+#include <iostream>
+#include <ctime>
+#include <cstdlib>
+
+SC_MODULE(fibonacci_module) {
+    SC_HAS_PROCESS(fibonacci_module);
+
+    fibonacci_module(sc_module_name name) : sc_module(name) {
+        SC_THREAD(fibonacci_sequence_thread);
+        SC_THREAD(write_numbers_thread);
+        SC_THREAD(control_thread);
+        SC_THREAD(reset_thread);
+        SC_THREAD(stop_thread);
+    }
+
+    void fibonacci_sequence_thread() {
+        while (true) {
+            // Generate Fibonacci sequence in random time intervals
+            int fib[64] = {0, 1};
+            for (int i = 2; i < 64; i++) {
+                fib[i] = fib[i-1] + fib[i-2];
+            }
+            std::random_shuffle(std::begin(fib), std::end(fib)); // Randomize order
+            for (int i = 0; i < 64; i++) {
+                fibonacci_sequence[i] = fib[i];
+                wait(rand() % 91 + 10, SC_NS); // Create new number from 10ns to 100ns
+            }
+        }
+    }
+
+    void write_numbers_thread() {
+        while (true) {
+            // Write numbers created every second
+            wait(1, SC_SEC);
+            for (int i = 0; i < fibonacci_sequence.size(); i++) {
+                std::cout << "Fibonacci number #" << i << ": " << fibonacci_sequence[i] << std::endl;
+            }
+        }
+    }
+
+    void control_thread() {
+        // Simulation should last 20 seconds
+        wait(20, SC_SEC);
+        stop_sig.write(true);
+    }
+
+    void reset_thread() {
+        while (true) {
+            wait(reset_event);
+            fibonacci_sequence.reset();
+        }
+    }
+
+    void stop_thread() {
+        while (true) {
+            wait(stop_sig.value_changed_event());
+            sc_stop();
+        }
+    }
+
+    sc_event reset_event;
+    sc_signal<bool> stop_sig;
+
+    std::vector<int> fibonacci_sequence;
+
+};
+
+int sc_main(int argc, char* argv[]) {
+    std::srand(std::time(nullptr)); // Seed random number generator
+    fibonacci_module fib_module("Fibonacci Module");
+    sc_start();
+    return 0;
+}
